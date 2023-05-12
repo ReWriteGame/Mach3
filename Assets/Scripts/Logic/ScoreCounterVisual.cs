@@ -7,13 +7,13 @@ using UnityEngine.UI;
 public class ScoreCounterVisual : MonoBehaviour
 {
     [SerializeField] private TextMeshProUGUI output;
-    [SerializeField] private ScoreCounter scoreCounter;
+    [SerializeField] private ScoreCounterMB scoreCounter;
     [SerializeField] private int numberOfCharacters = 2;
 
 
     private void Start()
     {
-        UpdateScore(scoreCounter.Value);
+        UpdateScore(scoreCounter.ScoreCounterData.Value);
     }
 
 
@@ -24,10 +24,11 @@ public class ScoreCounterVisual : MonoBehaviour
 
     private void OnEnable()
     {
-        scoreCounter.OnChangeValue += UpdateScore;
+        scoreCounter.OnChangeValue.AddListener(UpdateScore);
     }
+
     private void OnDisable()
     {
-        scoreCounter.OnChangeValue -= UpdateScore;
+        scoreCounter.OnChangeValue.RemoveListener(UpdateScore);
     }
 }

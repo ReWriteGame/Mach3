@@ -1,20 +1,53 @@
 ﻿using UnityEngine;
-using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.Events;
+
 
 public class Tile : MonoBehaviour
 {
 	private static Color selectedColor = new Color(.5f, .5f, .5f, 1.0f);
 	private static Tile previousSelected = null;
 
+	public UnityEvent OnSwapSprite;
+
 	private SpriteRenderer render;
 	private bool isSelected = false;
-
+	private bool matchFound = false;
 	private Vector2[] adjacentDirections = new Vector2[] { Vector2.up, Vector2.down, Vector2.left, Vector2.right };
 
-	void Awake()
+	private void Awake()
 	{
 		render = GetComponent<SpriteRenderer>();
+	}
+
+	public void ClearAllMatches()
+	{
+		if (render.sprite == null)
+			return;
+
+		ClearMatch(new Vector2[2] { Vector2.left, Vector2.right });
+		ClearMatch(new Vector2[2] { Vector2.up, Vector2.down });
+		if (matchFound)
+		{
+			render.sprite = null;
+			matchFound = false;
+			StopCoroutine(BoardManager.instance.FindNullTiles()); //Add this line
+			StartCoroutine(BoardManager.instance.FindNullTiles()); //Add this line
+																   //SFXManager.instance.PlaySFX(Clip.Clear);
+		}
+	}
+
+	public void SwapSprite(SpriteRenderer render2)
+	{
+		if (render.sprite == render2.sprite)
+		{
+			return;
+		}
+
+		Sprite tempSprite = render2.sprite;
+		render2.sprite = render.sprite;
+		render.sprite = tempSprite;
+		OnSwapSprite?.Invoke();
 	}
 
 	private void Select()
@@ -31,7 +64,7 @@ public class Tile : MonoBehaviour
 		previousSelected = null;
 	}
 
-	void OnMouseDown()
+	private void OnMouseDown()
 	{
 		// Not Selectable conditions
 		if (render.sprite == null || BoardManager.instance.IsShifting)
@@ -67,19 +100,7 @@ public class Tile : MonoBehaviour
 		}
 	}
 
-	public void SwapSprite(SpriteRenderer render2)
-	{
-		if (render.sprite == render2.sprite)
-		{
-			return;
-		}
-
-		Sprite tempSprite = render2.sprite;
-		render2.sprite = render.sprite;
-		render.sprite = tempSprite;
-		//SFXManager.instance.PlaySFX(Clip.Swap);
-		//GUIManager.instance.MoveCounter--; // Add this line here
-	}
+	
 
 	private GameObject GetAdjacent(Vector2 castDir)
 	{
@@ -126,23 +147,4 @@ public class Tile : MonoBehaviour
 			matchFound = true;
 		}
 	}
-
-	private bool matchFound = false;
-	public void ClearAllMatches()
-	{
-		if (render.sprite == null)
-			return;
-
-		ClearMatch(new Vector2[2] { Vector2.left, Vector2.right });
-		ClearMatch(new Vector2[2] { Vector2.up, Vector2.down });
-		if (matchFound)
-		{
-			render.sprite = null;
-			matchFound = false;
-			StopCoroutine(BoardManager.instance.FindNullTiles()); //Add this line
-			StartCoroutine(BoardManager.instance.FindNullTiles()); //Add this line
-																   //SFXManager.instance.PlaySFX(Clip.Clear);
-		}
-	}
-
 }

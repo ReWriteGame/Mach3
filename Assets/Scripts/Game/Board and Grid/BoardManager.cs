@@ -1,43 +1,48 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.Events;
 
 public class BoardManager : MonoBehaviour
 {
 	public static BoardManager instance;
-	public List<Sprite> characters = new List<Sprite>();
-	public GameObject tile;
-	public int xSize, ySize;
+
+	[SerializeField] private List<Sprite> characters = new List<Sprite>();
+	[SerializeField] private GameObject tile;
+	[SerializeField] private Vector2Int sizeBoard;
 
 	private GameObject[,] tiles;
 
+	public UnityEvent OnMatеcedCells;
+
 	public bool IsShifting { get; set; }
 
-	void Start()
+    private void Start()
 	{
 		instance = GetComponent<BoardManager>();
-
-		Vector2 offset = tile.GetComponent<SpriteRenderer>().bounds.size;
-		CreateBoard(offset.x, offset.y);
+		Vector2 cellSize = tile.GetComponent<BoxCollider2D>().size;
+		CreateBoard(cellSize);
 	}
 
-	private void CreateBoard(float xOffset, float yOffset)
+	private void CreateBoard(Vector2 cellSize)
 	{
-		tiles = new GameObject[xSize, ySize];
+		tiles = new GameObject[sizeBoard.x, sizeBoard.y];
 
 		float startX = transform.position.x;
 		float startY = transform.position.y;
 
-		Sprite[] previousLeft = new Sprite[ySize]; // Add this line
+		Sprite[] previousLeft = new Sprite[sizeBoard.y]; // Add this line
 		Sprite previousBelow = null; // Add this line
 
-		for (int x = 0; x < xSize; x++)
+		for (int x = 0; x < sizeBoard.x; x++)
 		{
-			for (int y = 0; y < ySize; y++)
+			for (int y = 0; y < sizeBoard.y; y++)
 			{
-				GameObject newTile = Instantiate(tile, new Vector3(startX + (xOffset * x), startY + (yOffset * y), 0), tile.transform.rotation);
+				Vector3 spawnTilePosition = new Vector3(startX + (cellSize.x * x), startY + (cellSize.y * y), 0);
+				GameObject newTile = Instantiate(tile, spawnTilePosition, tile.transform.rotation);
+				newTile.transform.parent = transform;
+
 				tiles[x, y] = newTile;
-				newTile.transform.parent = transform; // Add this line
 
 				List<Sprite> possibleCharacters = new List<Sprite>();
 				possibleCharacters.AddRange(characters);
@@ -55,9 +60,9 @@ public class BoardManager : MonoBehaviour
 
 	public IEnumerator FindNullTiles()
 	{
-		for (int x = 0; x < xSize; x++)
+		for (int x = 0; x < sizeBoard.x; x++)
 		{
-			for (int y = 0; y < ySize; y++)
+			for (int y = 0; y < sizeBoard.y; y++)
 			{
 				if (tiles[x, y].GetComponent<SpriteRenderer>().sprite == null)
 				{
@@ -67,13 +72,9 @@ public class BoardManager : MonoBehaviour
 			}
 		}
 
-		for (int x = 0; x < xSize; x++)
-		{
-			for (int y = 0; y < ySize; y++)
-			{
+		for (int x = 0; x < sizeBoard.x; x++)
+			for (int y = 0; y < sizeBoard.y; y++)
 				tiles[x, y].GetComponent<Tile>().ClearAllMatches();
-			}
-		}
 	}
 
 	private IEnumerator ShiftTilesDown(int x, int yStart, float shiftDelay = .03f)
@@ -82,7 +83,7 @@ public class BoardManager : MonoBehaviour
 		List<SpriteRenderer> renders = new List<SpriteRenderer>();
 		int nullCount = 0;
 
-		for (int y = yStart; y < ySize; y++)
+		for (int y = yStart; y < sizeBoard.y; y++)
 		{
 			SpriteRenderer render = tiles[x, y].GetComponent<SpriteRenderer>();
 			if (render.sprite == null)
@@ -94,12 +95,12 @@ public class BoardManager : MonoBehaviour
 
 		for (int i = 0; i < nullCount; i++)
 		{
-			//GUIManager.instance.Score += 50; // Add this line here
+			OnMatеcedCells?.Invoke();
 			yield return new WaitForSeconds(shiftDelay);
 			for (int k = 0; k < renders.Count - 1; k++)
 			{
 				renders[k].sprite = renders[k + 1].sprite;
-				renders[k + 1].sprite = GetNewSprite(x, ySize - 1);
+				renders[k + 1].sprite = GetNewSprite(x, sizeBoard.y - 1);
 			}
 		}
 		IsShifting = false;
@@ -114,7 +115,7 @@ public class BoardManager : MonoBehaviour
 		{
 			possibleCharacters.Remove(tiles[x - 1, y].GetComponent<SpriteRenderer>().sprite);
 		}
-		if (x < xSize - 1)
+		if (x < sizeBoard.x - 1)
 		{
 			possibleCharacters.Remove(tiles[x + 1, y].GetComponent<SpriteRenderer>().sprite);
 		}
@@ -125,5 +126,4 @@ public class BoardManager : MonoBehaviour
 
 		return possibleCharacters[Random.Range(0, possibleCharacters.Count)];
 	}
-
 }
